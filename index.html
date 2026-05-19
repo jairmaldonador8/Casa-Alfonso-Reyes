@@ -681,11 +681,17 @@ section { position: relative; }
   gap: 16px;
   padding: 20px;
   overflow-x: auto;
-  scroll-behavior: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
+  scroll-padding: 0;
   -webkit-overflow-scrolling: touch;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: pan-x;
   height: 100%;
   will-change: scroll-position;
+  overscroll-behavior: contain;
 }
 .carousel-track::-webkit-scrollbar { height: 6px; }
 .carousel-track::-webkit-scrollbar-track { background: transparent; }
@@ -2437,8 +2443,8 @@ let autoScrollTimer;
 function autoScroll() {
   const itemWidth = carousel.querySelector('.carousel-item').offsetWidth;
   const gap = window.innerWidth <= 600 ? 0 : 16;
-  carousel.scrollBy({ left: itemWidth + gap, behavior: 'auto' });
-  autoScrollTimer = setTimeout(autoScroll, 4000);
+  carousel.scrollBy({ left: itemWidth + gap, behavior: 'smooth' });
+  autoScrollTimer = setTimeout(autoScroll, 5000);
 }
 
 carousel.addEventListener('mousedown', () => {
@@ -2479,13 +2485,18 @@ carousel.addEventListener('mousedown', (e) => {
   dragDistance = 0;
   startX = e.pageX - carousel.offsetLeft;
   scrollLeft = carousel.scrollLeft;
+  carousel.style.cursor = 'grabbing';
+  carousel.style.scrollBehavior = 'auto';
 });
 carousel.addEventListener('mouseleave', () => {
   isDown = false;
+  carousel.style.cursor = 'grab';
   setTimeout(() => { isDragging = false; }, 100);
 });
 carousel.addEventListener('mouseup', () => {
   isDown = false;
+  carousel.style.cursor = 'grab';
+  carousel.style.scrollBehavior = 'smooth';
   setTimeout(() => { isDragging = false; }, 100);
 });
 carousel.addEventListener('mousemove', (e) => {
@@ -2494,26 +2505,66 @@ carousel.addEventListener('mousemove', (e) => {
   const x = e.pageX - carousel.offsetLeft;
   const walk = (x - startX) * 0.8;
   dragDistance = Math.abs(walk);
-  if (dragDistance > 5) isDragging = true;
+  if (dragDistance > 3) isDragging = true;
   carousel.scrollLeft = scrollLeft - walk;
 });
 
 let touchStartX = 0;
 let touchStartScroll = 0;
+let touchStartTime = 0;
+let lastTouchX = 0;
+let lastTouchTime = 0;
+
 carousel.addEventListener('touchstart', (e) => {
+  clearTimeout(autoScrollTimer);
+  if (!hasInteractedCarousel && carouselScrollHint) {
+    hasInteractedCarousel = true;
+    carouselScrollHint.style.opacity = '0';
+    carouselScrollHint.style.pointerEvents = 'none';
+  }
   touchStartX = e.touches[0].clientX;
+  lastTouchX = touchStartX;
   touchStartScroll = carousel.scrollLeft;
+  touchStartTime = Date.now();
+  lastTouchTime = touchStartTime;
+  isDragging = false;
+  carousel.style.scrollBehavior = 'auto';
 }, { passive: true });
+
 carousel.addEventListener('touchmove', (e) => {
   if (!e.touches[0]) return;
   const touchX = e.touches[0].clientX;
   const diff = touchStartX - touchX;
-  if (Math.abs(diff) > 5) isDragging = true;
-  carousel.scrollLeft = touchStartScroll + diff;
+
+  if (Math.abs(diff) > 3) {
+    isDragging = true;
+  }
+
+  if (isDragging) {
+    carousel.scrollLeft = touchStartScroll + diff;
+    lastTouchX = touchX;
+    lastTouchTime = Date.now();
+  }
 }, { passive: true });
+
 carousel.addEventListener('touchend', () => {
+  carousel.style.scrollBehavior = 'smooth';
+
+  const timeDiff = Date.now() - lastTouchTime;
+  const distDiff = lastTouchX - touchStartX;
+
+  if (timeDiff < 150 && Math.abs(distDiff) > 20) {
+    const velocity = Math.abs(distDiff) / timeDiff;
+    const momentum = velocity * 80;
+    const direction = distDiff > 0 ? -1 : 1;
+    carousel.scrollBy({
+      left: direction * momentum,
+      behavior: 'smooth'
+    });
+  }
+
   setTimeout(() => { isDragging = false; }, 100);
-});
+}, { passive: true });
 </script>
 
 </body>
