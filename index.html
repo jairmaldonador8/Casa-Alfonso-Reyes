@@ -2478,26 +2478,46 @@ let isDown = false;
 let startX;
 let scrollLeft;
 let dragDistance = 0;
+let startMouseTime = 0;
+let lastMouseX = 0;
 
 carousel.addEventListener('mousedown', (e) => {
   isDown = true;
   isDragging = false;
   dragDistance = 0;
   startX = e.pageX - carousel.offsetLeft;
+  lastMouseX = startX;
   scrollLeft = carousel.scrollLeft;
+  startMouseTime = Date.now();
   carousel.style.cursor = 'grabbing';
   carousel.style.scrollBehavior = 'auto';
 });
 carousel.addEventListener('mouseleave', () => {
   isDown = false;
   carousel.style.cursor = 'grab';
-  setTimeout(() => { isDragging = false; }, 100);
+  setTimeout(() => { isDragging = false; }, 150);
 });
-carousel.addEventListener('mouseup', () => {
+carousel.addEventListener('mouseup', (e) => {
   isDown = false;
   carousel.style.cursor = 'grab';
   carousel.style.scrollBehavior = 'smooth';
-  setTimeout(() => { isDragging = false; }, 100);
+
+  // Momentum agresivo para mouse también
+  const now = Date.now();
+  if (now - startMouseTime < 200 && dragDistance > 10) {
+    const velocity = dragDistance / (now - startMouseTime);
+    let momentum = velocity * 150;
+    if (velocity > 0.5) momentum *= 1.4;
+    if (velocity > 1) momentum *= 1.3;
+
+    const direction = startX > lastMouseX ? 1 : -1;
+    carousel.scrollBy({
+      left: direction * momentum,
+      behavior: 'smooth'
+    });
+  }
+
+  setTimeout(() => { isDragging = false; }, 150);
 });
 carousel.addEventListener('mousemove', (e) => {
   if (!isDown) return;
@@ -2505,6 +2525,7 @@ carousel.addEventListener('mousemove', (e) => {
   const x = e.pageX - carousel.offsetLeft;
   const walk = (x - startX) * 0.8;
   dragDistance = Math.abs(walk);
+  lastMouseX = x;
   if (dragDistance > 3) isDragging = true;
   carousel.scrollLeft = scrollLeft - walk;
 });
@@ -2552,18 +2573,27 @@ carousel.addEventListener('touchend', () => {
 
   const timeDiff = Date.now() - lastTouchTime;
   const distDiff = lastTouchX - touchStartX;
+  const totalDist = lastTouchX - touchStartX;
 
-  if (timeDiff < 150 && Math.abs(distDiff) > 20) {
+  // Momentum agresivo tipo TikTok
+  if (timeDiff < 200 && Math.abs(distDiff) > 10) {
     const velocity = Math.abs(distDiff) / timeDiff;
-    const momentum = velocity * 80;
+
+    // Velocidad base más fuerte, con aceleración basada en velocidad
+    let momentum = velocity * 200;
+    if (velocity > 0.5) momentum *= 1.3; // Boost para swipes rápidos
+    if (velocity > 1) momentum *= 1.2;   // Super boost para swipes muy rápidos
+
     const direction = distDiff > 0 ? -1 : 1;
+
+    // Aplicar momentum con duración más larga para efecto 'fling'
     carousel.scrollBy({
       left: direction * momentum,
       behavior: 'smooth'
     });
   }
 
-  setTimeout(() => { isDragging = false; }, 100);
+  setTimeout(() => { isDragging = false; }, 150);
 }, { passive: true });
 </script>
 
