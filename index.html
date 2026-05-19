@@ -682,7 +682,7 @@ section { position: relative; }
   padding: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   scroll-snap-type: x mandatory;
   scroll-padding: 0;
   -webkit-overflow-scrolling: touch;
@@ -691,8 +691,10 @@ section { position: relative; }
   touch-action: pan-x pan-y;
   height: 100%;
   will-change: scroll-position;
-  overscroll-behavior-x: contain;
-  overscroll-behavior-y: auto;
+  overscroll-behavior: contain;
+  -webkit-transform: translate3d(0, 0, 0);
+  -webkit-perspective: 1000;
+  -webkit-backface-visibility: hidden;
 }
 .carousel-track::-webkit-scrollbar { display: none; }
 .carousel-item {
@@ -2526,13 +2528,17 @@ let isDragging = false;
 prevBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   e.preventDefault();
-  carousel.scrollBy({ left: -carousel.offsetWidth, behavior: 'smooth' });
+  carousel.style.scrollBehavior = 'smooth';
+  carousel.scrollBy({ left: -carousel.offsetWidth });
+  setTimeout(() => { carousel.style.scrollBehavior = 'auto'; }, 500);
 });
 
 nextBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   e.preventDefault();
-  carousel.scrollBy({ left: carousel.offsetWidth, behavior: 'smooth' });
+  carousel.style.scrollBehavior = 'smooth';
+  carousel.scrollBy({ left: carousel.offsetWidth });
+  setTimeout(() => { carousel.style.scrollBehavior = 'auto'; }, 500);
 });
 
 // Ocultar hint cuando interactúa
