@@ -2584,26 +2584,67 @@ carousel.addEventListener('mousemove', (e) => {
   carousel.scrollLeft = scrollLeft - walk;
 });
 
-// Touch support
+// Touch support - Mejor scroll en móvil
 let touchStartX = 0;
 let touchStartScroll = 0;
+let touchStartTime = 0;
+let lastTouchX = 0;
+let lastTouchTime = 0;
+let touchVelocity = 0;
 
 carousel.addEventListener('touchstart', (e) => {
   touchStartX = e.touches[0].clientX;
+  lastTouchX = touchStartX;
   touchStartScroll = carousel.scrollLeft;
+  touchStartTime = Date.now();
+  lastTouchTime = touchStartTime;
   isDragging = false;
+  touchVelocity = 0;
 }, { passive: true });
 
 carousel.addEventListener('touchmove', (e) => {
   if (!e.touches[0]) return;
   const touchX = e.touches[0].clientX;
+  const currentTime = Date.now();
   const diff = touchStartX - touchX;
-  if (Math.abs(diff) > 5) isDragging = true;
+
+  if (Math.abs(diff) > 5) {
+    isDragging = true;
+  }
+
+  // Calcular velocidad en tiempo real
+  const timeSinceLastMove = currentTime - lastTouchTime;
+  if (timeSinceLastMove > 0) {
+    const distSinceLastMove = Math.abs(touchX - lastTouchX);
+    touchVelocity = distSinceLastMove / timeSinceLastMove;
+  }
+
+  lastTouchX = touchX;
+  lastTouchTime = currentTime;
+
+  // Scroll manual para mejor control
   carousel.scrollLeft = touchStartScroll + diff;
 }, { passive: true });
 
-carousel.addEventListener('touchend', () => {
-  setTimeout(() => { isDragging = false; }, 100);
+carousel.addEventListener('touchend', (e) => {
+  const touchEndTime = Date.now();
+  const touchEndX = e.changedTouches[0].clientX;
+  const totalDiff = touchStartX - touchEndX;
+  const totalTime = touchEndTime - touchStartTime;
+
+  // Momentum scrolling basado en velocidad
+  if (totalTime < 300 && Math.abs(totalDiff) > 20 && touchVelocity > 0.5) {
+    // Calcular momentum proporcional a la velocidad
+    const momentum = touchVelocity * 200;
+    const direction = totalDiff > 0 ? 1 : -1;
+
+    carousel.scrollBy({
+      left: direction * momentum,
+      behavior: 'smooth'
+    });
+  }
+
+  setTimeout(() => { isDragging = false; }, 150);
 }, { passive: true });
 </script>
 
