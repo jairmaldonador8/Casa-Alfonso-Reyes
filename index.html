@@ -678,23 +678,25 @@ section { position: relative; }
 }
 .carousel-track {
   display: flex;
-  gap: 0;
-  padding: 0;
+  flex-wrap: nowrap;
+  gap: 16px;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-behavior: auto;
+  scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  -webkit-user-select: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  padding: 0 20px;
   user-select: none;
-  touch-action: pan-x pan-y;
-  height: 100%;
-  will-change: scroll-position;
-  overscroll-behavior: contain;
-  -webkit-transform: translate3d(0, 0, 0);
-  -webkit-perspective: 1000;
-  -webkit-backface-visibility: hidden;
 }
-.carousel-track::-webkit-scrollbar { display: none; }
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-track:active {
+  cursor: grabbing;
+}
 .carousel-item {
   flex: 0 0 100%;
   min-height: 300px;
@@ -704,6 +706,7 @@ section { position: relative; }
   color: white;
   font-size: 18px;
   font-weight: 500;
+  scroll-snap-align: center;
   cursor: grab;
   user-select: none;
   position: relative;
@@ -2512,110 +2515,107 @@ lightbox.addEventListener('click', (e) => {
 });
 
 // ════════════════════════════════════════════════
-// PREMIUM CAROUSEL - Minimal con Botones
+// PREMIUM CAROUSEL - Exactamente como VITASTUDIO
 // ════════════════════════════════════════════════
-const carousel = document.getElementById('premiumCarousel');
-const prevBtn = document.getElementById('carouselPrevBtn');
-const nextBtn = document.getElementById('carouselNextBtn');
-const carouselScrollHint = document.getElementById('carouselScrollHint');
-let isDragging = false;
+(function() {
+  const carousel = document.getElementById('premiumCarousel');
+  const prevBtn = document.getElementById('carouselPrevBtn');
+  const nextBtn = document.getElementById('carouselNextBtn');
 
-// Botones de navegación
-prevBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  e.preventDefault();
-  carousel.style.scrollBehavior = 'smooth';
-  carousel.scrollBy({ left: -carousel.offsetWidth });
-  setTimeout(() => { carousel.style.scrollBehavior = 'auto'; }, 500);
-});
+  if (!carousel) return;
 
-nextBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  e.preventDefault();
-  carousel.style.scrollBehavior = 'smooth';
-  carousel.scrollBy({ left: carousel.offsetWidth });
-  setTimeout(() => { carousel.style.scrollBehavior = 'auto'; }, 500);
-});
+  let isDown = false;
+  let startX = 0;
+  let scrollStart = 0;
+  let hasScrolled = false;
+  let dragDistance = 0;
+  let isDragging = false;
 
-// Ocultar hint cuando interactúa
-carousel.addEventListener('touchstart', () => {
-  if (carouselScrollHint) {
-    carouselScrollHint.style.opacity = '0';
-    carouselScrollHint.style.pointerEvents = 'none';
-  }
-}, { passive: true });
+  // Botones de navegación
+  prevBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    carousel.scrollBy({ left: -carousel.offsetWidth, behavior: 'smooth' });
+  });
 
-carousel.addEventListener('mousedown', () => {
-  if (carouselScrollHint) {
-    carouselScrollHint.style.opacity = '0';
-    carouselScrollHint.style.pointerEvents = 'none';
-  }
-});
+  nextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    carousel.scrollBy({ left: carousel.offsetWidth, behavior: 'smooth' });
+  });
 
-// Drag support — track when actually dragging to avoid accidental lightbox open
-let isDown = false;
-let startX;
-let scrollLeft;
-let dragDistance = 0;
+  // Drag con mouse (desktop) - Exacto a VITASTUDIO
+  carousel.addEventListener('mousedown', function(e) {
+    isDown = true;
+    isDragging = false;
+    dragDistance = 0;
+    startX = e.pageX - carousel.offsetLeft;
+    scrollStart = carousel.scrollLeft;
+    carousel.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
 
-carousel.addEventListener('mousedown', (e) => {
-  isDown = true;
-  isDragging = false;
-  dragDistance = 0;
-  startX = e.pageX - carousel.offsetLeft;
-  scrollLeft = carousel.scrollLeft;
-});
+  carousel.addEventListener('mouseleave', function() {
+    isDown = false;
+    carousel.style.cursor = 'grab';
+    setTimeout(() => { isDragging = false; }, 100);
+  });
 
-carousel.addEventListener('mouseleave', () => {
-  isDown = false;
-  setTimeout(() => { isDragging = false; }, 100);
-});
+  carousel.addEventListener('mouseup', function() {
+    isDown = false;
+    carousel.style.cursor = 'grab';
+    setTimeout(() => { isDragging = false; }, 100);
+  });
 
-carousel.addEventListener('mouseup', () => {
-  isDown = false;
-  setTimeout(() => { isDragging = false; }, 100);
-});
+  carousel.addEventListener('mousemove', function(e) {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - carousel.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    dragDistance = Math.abs(walk);
+    if (dragDistance > 5) isDragging = true;
+    carousel.scrollLeft = scrollStart - walk;
+  });
 
-carousel.addEventListener('mousemove', (e) => {
-  if (!isDown) return;
-  e.preventDefault();
-  const x = e.pageX - carousel.offsetLeft;
-  const walk = (x - startX) * 1.5;
-  dragDistance = Math.abs(walk);
-  if (dragDistance > 5) isDragging = true;
-  carousel.scrollLeft = scrollLeft - walk;
-});
+  // Touch support (móvil)
+  let touchStartX = 0;
+  let touchStartScroll = 0;
 
-// Touch support - Scroll responsivo como VITASTUDIO
-let touchStartX = 0;
-let touchStartScroll = 0;
-let isTouching = false;
+  carousel.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartScroll = carousel.scrollLeft;
+    isDragging = false;
+    dragDistance = 0;
+  }, { passive: true });
 
-carousel.addEventListener('touchstart', (e) => {
-  isTouching = true;
-  touchStartX = e.touches[0].clientX;
-  touchStartScroll = carousel.scrollLeft;
-  isDragging = false;
-}, { passive: true });
+  carousel.addEventListener('touchmove', (e) => {
+    if (!e.touches[0]) return;
+    const touchX = e.touches[0].clientX;
+    const diff = touchStartX - touchX;
 
-carousel.addEventListener('touchmove', (e) => {
-  if (!isTouching || !e.touches[0]) return;
-  const touchX = e.touches[0].clientX;
-  const diff = touchStartX - touchX;
+    if (Math.abs(diff) > 5) {
+      isDragging = true;
+    }
 
-  if (Math.abs(diff) > 5) {
-    isDragging = true;
-  }
+    dragDistance = Math.abs(diff);
+    const walk = diff * 1.5;
+    carousel.scrollLeft = touchStartScroll + walk;
+  }, { passive: true });
 
-  // Multiplicador responsivo como VITASTUDIO
-  const walk = diff * 1.5;
-  carousel.scrollLeft = touchStartScroll + walk;
-}, { passive: true });
+  carousel.addEventListener('touchend', () => {
+    setTimeout(() => { isDragging = false; }, 100);
+  }, { passive: true });
 
-carousel.addEventListener('touchend', () => {
-  isTouching = false;
-  setTimeout(() => { isDragging = false; }, 100);
-}, { passive: true });
+  // Ocultar hint cuando scrolleó
+  carousel.addEventListener('scroll', function() {
+    if (!hasScrolled && carousel.scrollLeft > 30) {
+      hasScrolled = true;
+      if (document.querySelector('.carousel-scroll-hint')) {
+        document.querySelector('.carousel-scroll-hint').classList.add('scrolled');
+      }
+    }
+  }, { passive: true });
+})();
 </script>
 
 </body>
