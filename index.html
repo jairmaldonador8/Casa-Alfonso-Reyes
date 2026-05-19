@@ -2578,73 +2578,41 @@ carousel.addEventListener('mousemove', (e) => {
   if (!isDown) return;
   e.preventDefault();
   const x = e.pageX - carousel.offsetLeft;
-  const walk = (x - startX) * 0.8;
+  const walk = (x - startX) * 1.5;
   dragDistance = Math.abs(walk);
   if (dragDistance > 5) isDragging = true;
   carousel.scrollLeft = scrollLeft - walk;
 });
 
-// Touch support - Mejor scroll en móvil
+// Touch support - Scroll responsivo como VITASTUDIO
 let touchStartX = 0;
 let touchStartScroll = 0;
-let touchStartTime = 0;
-let lastTouchX = 0;
-let lastTouchTime = 0;
-let touchVelocity = 0;
+let isTouching = false;
 
 carousel.addEventListener('touchstart', (e) => {
+  isTouching = true;
   touchStartX = e.touches[0].clientX;
-  lastTouchX = touchStartX;
   touchStartScroll = carousel.scrollLeft;
-  touchStartTime = Date.now();
-  lastTouchTime = touchStartTime;
   isDragging = false;
-  touchVelocity = 0;
 }, { passive: true });
 
 carousel.addEventListener('touchmove', (e) => {
-  if (!e.touches[0]) return;
+  if (!isTouching || !e.touches[0]) return;
   const touchX = e.touches[0].clientX;
-  const currentTime = Date.now();
   const diff = touchStartX - touchX;
 
   if (Math.abs(diff) > 5) {
     isDragging = true;
   }
 
-  // Calcular velocidad en tiempo real
-  const timeSinceLastMove = currentTime - lastTouchTime;
-  if (timeSinceLastMove > 0) {
-    const distSinceLastMove = Math.abs(touchX - lastTouchX);
-    touchVelocity = distSinceLastMove / timeSinceLastMove;
-  }
-
-  lastTouchX = touchX;
-  lastTouchTime = currentTime;
-
-  // Scroll manual para mejor control
-  carousel.scrollLeft = touchStartScroll + diff;
+  // Multiplicador responsivo como VITASTUDIO
+  const walk = diff * 1.5;
+  carousel.scrollLeft = touchStartScroll + walk;
 }, { passive: true });
 
-carousel.addEventListener('touchend', (e) => {
-  const touchEndTime = Date.now();
-  const touchEndX = e.changedTouches[0].clientX;
-  const totalDiff = touchStartX - touchEndX;
-  const totalTime = touchEndTime - touchStartTime;
-
-  // Momentum scrolling basado en velocidad
-  if (totalTime < 300 && Math.abs(totalDiff) > 20 && touchVelocity > 0.5) {
-    // Calcular momentum proporcional a la velocidad
-    const momentum = touchVelocity * 200;
-    const direction = totalDiff > 0 ? 1 : -1;
-
-    carousel.scrollBy({
-      left: direction * momentum,
-      behavior: 'smooth'
-    });
-  }
-
-  setTimeout(() => { isDragging = false; }, 150);
+carousel.addEventListener('touchend', () => {
+  isTouching = false;
+  setTimeout(() => { isDragging = false; }, 100);
 }, { passive: true });
 </script>
 
