@@ -688,10 +688,11 @@ section { position: relative; }
   -webkit-overflow-scrolling: touch;
   -webkit-user-select: none;
   user-select: none;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   height: 100%;
   will-change: scroll-position;
-  overscroll-behavior: contain;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
 }
 .carousel-track::-webkit-scrollbar { height: 6px; }
 .carousel-track::-webkit-scrollbar-track { background: transparent; }
