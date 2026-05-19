@@ -2515,7 +2515,7 @@ lightbox.addEventListener('click', (e) => {
 });
 
 // ════════════════════════════════════════════════
-// PREMIUM CAROUSEL - Exactamente como VITASTUDIO
+// PREMIUM CAROUSEL - Infinito como VITASTUDIO
 // ════════════════════════════════════════════════
 (function() {
   const carousel = document.getElementById('premiumCarousel');
@@ -2524,27 +2524,64 @@ lightbox.addEventListener('click', (e) => {
 
   if (!carousel) return;
 
+  const items = Array.from(carousel.querySelectorAll('.carousel-item'));
+  const itemWidth = items[0].offsetWidth;
+  const totalWidth = itemWidth * items.length;
+
+  // Clonar items para efecto infinito
+  items.forEach(item => {
+    const clone = item.cloneNode(true);
+    carousel.appendChild(clone);
+  });
+
   let isDown = false;
   let startX = 0;
   let scrollStart = 0;
   let hasScrolled = false;
   let dragDistance = 0;
   let isDragging = false;
+  let isResetting = false;
+
+  // Función para resetear el scroll infinitamente
+  function checkInfiniteScroll() {
+    if (isResetting) return;
+
+    const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+
+    // Si llegamos al final, resetear al principio
+    if (carousel.scrollLeft >= maxScroll - 10) {
+      isResetting = true;
+      carousel.style.scrollBehavior = 'auto';
+      carousel.scrollLeft = 0;
+      setTimeout(() => { isResetting = false; }, 50);
+    }
+    // Si vamos al inicio (deslizando hacia atrás), ir al final
+    else if (carousel.scrollLeft <= 10) {
+      isResetting = true;
+      carousel.style.scrollBehavior = 'auto';
+      carousel.scrollLeft = maxScroll;
+      setTimeout(() => { isResetting = false; }, 50);
+    }
+  }
 
   // Botones de navegación
   prevBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
-    carousel.scrollBy({ left: -carousel.offsetWidth, behavior: 'smooth' });
+    carousel.style.scrollBehavior = 'smooth';
+    carousel.scrollBy({ left: -itemWidth });
+    setTimeout(checkInfiniteScroll, 500);
   });
 
   nextBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
-    carousel.scrollBy({ left: carousel.offsetWidth, behavior: 'smooth' });
+    carousel.style.scrollBehavior = 'smooth';
+    carousel.scrollBy({ left: itemWidth });
+    setTimeout(checkInfiniteScroll, 500);
   });
 
-  // Drag con mouse (desktop) - Exacto a VITASTUDIO
+  // Drag con mouse (desktop)
   carousel.addEventListener('mousedown', function(e) {
     isDown = true;
     isDragging = false;
@@ -2552,19 +2589,24 @@ lightbox.addEventListener('click', (e) => {
     startX = e.pageX - carousel.offsetLeft;
     scrollStart = carousel.scrollLeft;
     carousel.style.cursor = 'grabbing';
+    carousel.style.scrollBehavior = 'auto';
     e.preventDefault();
   });
 
   carousel.addEventListener('mouseleave', function() {
     isDown = false;
     carousel.style.cursor = 'grab';
+    carousel.style.scrollBehavior = 'smooth';
     setTimeout(() => { isDragging = false; }, 100);
+    checkInfiniteScroll();
   });
 
   carousel.addEventListener('mouseup', function() {
     isDown = false;
     carousel.style.cursor = 'grab';
+    carousel.style.scrollBehavior = 'smooth';
     setTimeout(() => { isDragging = false; }, 100);
+    checkInfiniteScroll();
   });
 
   carousel.addEventListener('mousemove', function(e) {
@@ -2586,6 +2628,7 @@ lightbox.addEventListener('click', (e) => {
     touchStartScroll = carousel.scrollLeft;
     isDragging = false;
     dragDistance = 0;
+    carousel.style.scrollBehavior = 'auto';
   }, { passive: true });
 
   carousel.addEventListener('touchmove', (e) => {
@@ -2603,10 +2646,12 @@ lightbox.addEventListener('click', (e) => {
   }, { passive: true });
 
   carousel.addEventListener('touchend', () => {
+    carousel.style.scrollBehavior = 'smooth';
     setTimeout(() => { isDragging = false; }, 100);
+    checkInfiniteScroll();
   }, { passive: true });
 
-  // Ocultar hint cuando scrolleó
+  // Detectar scroll y resetear si es necesario
   carousel.addEventListener('scroll', function() {
     if (!hasScrolled && carousel.scrollLeft > 30) {
       hasScrolled = true;
@@ -2614,7 +2659,17 @@ lightbox.addEventListener('click', (e) => {
         document.querySelector('.carousel-scroll-hint').classList.add('scrolled');
       }
     }
+
+    // Verificar si necesitamos resetear el scroll infinito
+    if (!isDown && !isDragging) {
+      checkInfiniteScroll();
+    }
   }, { passive: true });
+
+  // Inicializar en el centro
+  setTimeout(() => {
+    carousel.scrollLeft = totalWidth / 2;
+  }, 100);
 })();
 </script>
 
